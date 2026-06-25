@@ -105,7 +105,13 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Picker(viewModel.l10n.appSearchResultsLabel, selection: $viewModel.selectedApp) {
+                Picker(
+                    viewModel.l10n.appSearchResultsLabel,
+                    selection: Binding(
+                        get: { viewModel.selectedApp },
+                        set: { viewModel.chooseSearchResult($0) }
+                    )
+                ) {
                     Text(viewModel.l10n.noAppSelected).tag(Optional<AppSearchResult>.none)
                     ForEach(viewModel.searchResults) { app in
                         Text("\(app.name) - \(app.developerName)").tag(Optional(app))

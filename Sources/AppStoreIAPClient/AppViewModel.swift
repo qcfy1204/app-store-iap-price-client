@@ -91,9 +91,18 @@ final class AppViewModel: ObservableObject {
             defer { isSearching = false }
             do {
                 searchResults = try await publicClient.search(term: term)
-                statusMessage = l10n.foundApps(searchResults.count)
+                if let firstResult = searchResults.first {
+                    selectedApp = firstResult
+                    startQuery()
+                } else {
+                    selectedApp = nil
+                    resultRows = []
+                    statusMessage = l10n.foundApps(0)
+                }
             } catch {
                 searchResults = []
+                selectedApp = nil
+                resultRows = []
                 statusMessage = l10n.searchFailed(error.localizedDescription)
             }
         }
@@ -114,14 +123,28 @@ final class AppViewModel: ObservableObject {
             do {
                 selectedApp = try await publicClient.lookup(appId: appId, countryCode: countryCode)
                 if let selectedApp {
+                    searchResults = [selectedApp]
                     statusMessage = l10n.selectedApp(selectedApp.name)
+                    startQuery()
                 } else {
+                    resultRows = []
                     statusMessage = l10n.noAppFound(appId, countryCode: countryCode)
                 }
             } catch {
+                resultRows = []
                 statusMessage = l10n.lookupFailed(error.localizedDescription)
             }
         }
+    }
+
+    func chooseSearchResult(_ app: AppSearchResult?) {
+        selectedApp = app
+        guard app != nil else {
+            resultRows = []
+            statusMessage = l10n.noAppSelected
+            return
+        }
+        startQuery()
     }
 
     func selectAllCountries() {

@@ -34,10 +34,20 @@ public struct L10n: Equatable, Sendable {
     public var searchTitle: String { text("Search", "搜索") }
     public var appNamePlaceholder: String { text("App name", "App 名称") }
     public var appNameSearchFieldLabel: String { text("App name search field", "App 名称搜索输入框") }
-    public var appNameSearchFieldHint: String { text("Enter an App Store app name, then press Search.", "输入 App Store 应用名称，然后按搜索。") }
+    public var appNameSearchFieldHint: String {
+        text(
+            "Enter an App Store app name, then press Search. The best match is selected automatically and prices are queried for all selected countries.",
+            "输入 App Store 应用名称，然后按搜索。系统会自动选择最匹配的应用并查询所有已选国家和地区。"
+        )
+    }
     public var searchButton: String { text("Search", "搜索") }
     public var searchAppsLabel: String { text("Search apps", "搜索应用") }
-    public var searchAppsHint: String { text("Searches App Store apps by name.", "按名称搜索 App Store 应用。") }
+    public var searchAppsHint: String {
+        text(
+            "Searches App Store apps by name and automatically queries prices for the selected countries.",
+            "按名称搜索 App Store 应用，并自动查询所选国家和地区的价格。"
+        )
+    }
     public var directLookupPlaceholder: String { text("App Store URL or App ID", "App Store 链接或 App ID") }
     public var directLookupFieldLabel: String { text("Direct lookup field", "直接查询输入框") }
     public var directLookupFieldHint: String { text("Enter an App Store URL or numeric App ID.", "输入 App Store 链接或数字 App ID。") }
@@ -51,7 +61,7 @@ public struct L10n: Equatable, Sendable {
     public var appID: String { text("App ID", "App ID") }
     public var searchResultsTitle: String { text("Search Results", "搜索结果") }
     public var appSearchResultsLabel: String { text("App search results", "应用搜索结果") }
-    public var selectAppHint: String { text("Selects this app for price lookup.", "选择此应用用于价格查询。") }
+    public var selectAppHint: String { text("Selects this app and starts the price lookup.", "选择此应用并开始价格查询。") }
     public var countriesTitle: String { text("Countries", "国家和地区") }
     public var allButton: String { text("All", "全选") }
     public var selectAllCountriesLabel: String { text("Select all countries", "选择所有国家和地区") }
@@ -71,9 +81,9 @@ public struct L10n: Equatable, Sendable {
     public var selectedCountryCountLabel: String { text("Selected country count", "已选国家和地区数量") }
     public var countrySelectionListLabel: String { text("Country selection list", "国家和地区选择列表") }
     public var countryToggleHint: String { text("Includes or excludes this country from the price query.", "在价格查询中包含或排除此国家或地区。") }
-    public var startQueryButton: String { text("Start Query", "开始查询") }
-    public var startQueryLabel: String { text("Start price query", "开始价格查询") }
-    public var startQueryHint: String { text("Queries selected countries for the selected app.", "查询所选应用在所选国家和地区的价格。") }
+    public var startQueryButton: String { text("Refresh", "刷新") }
+    public var startQueryLabel: String { text("Refresh price query", "刷新价格查询") }
+    public var startQueryHint: String { text("Refreshes selected countries for the selected app.", "刷新所选应用在所选国家和地区的价格。") }
     public var cancelButton: String { text("Cancel", "取消") }
     public var cancelQueryLabel: String { text("Cancel price query", "取消价格查询") }
     public var settingsButton: String { text("Settings", "设置") }

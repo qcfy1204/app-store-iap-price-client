@@ -136,6 +136,19 @@ let tests: [(String, () throws -> Void)] = [
     ("L10n localizes control-adjacent save panel file name", {
         let l10n = L10n(preferredLanguages: ["zh-Hans-CN"])
         try assertEqual(l10n.exportBaseFileName, "AppStore内购价格", "Save panel base file name should be Chinese")
+    }),
+    ("L10n describes automatic country price lookup after app search", {
+        let zh = L10n(preferredLanguages: ["zh-Hans-CN"])
+        try assertEqual(
+            zh.appNameSearchFieldHint,
+            "输入 App Store 应用名称，然后按搜索。系统会自动选择最匹配的应用并查询所有已选国家和地区。",
+            "Chinese app search hint should describe automatic lookup"
+        )
+        try assertEqual(
+            zh.searchAppsHint,
+            "按名称搜索 App Store 应用，并自动查询所选国家和地区的价格。",
+            "Chinese search button hint should describe automatic lookup"
+        )
     })
 ]
 
