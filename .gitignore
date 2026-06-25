@@ -1,0 +1,13 @@
+.build/
+.swiftpm/
+.DS_Store
+xcuserdata/
+DerivedData/
+outputs/*.app/
+docs/superpowers/
+work/
+*.xcresult
+*.p8
+*.mobileprovision
+*.cer
+*.key
