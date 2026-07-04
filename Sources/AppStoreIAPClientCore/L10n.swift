@@ -88,7 +88,7 @@ public struct L10n: Equatable, Sendable {
     public var cancelQueryLabel: String { text("Cancel price query", "取消价格查询") }
     public var settingsButton: String { text("Settings", "设置") }
     public var openSettingsLabel: String { text("Open settings", "打开设置") }
-    public var openSettingsHint: String { text("Opens optional App Store Connect credential settings.", "打开可选的 App Store Connect 凭据设置。") }
+    public var openSettingsHint: String { text("Opens account, data source, and accessibility settings.", "打开账户、数据源和辅助功能设置。") }
     public var exportCSVButton: String { text("Export CSV", "导出 CSV") }
     public var exportCSVHint: String { text("Saves the visible query results to a CSV file.", "将当前查询结果保存为 CSV 文件。") }
     public var exportJSONButton: String { text("Export JSON", "导出 JSON") }
@@ -119,6 +119,50 @@ public struct L10n: Equatable, Sendable {
     }
     public var publicDataLimitationLabel: String { text("Public data limitation", "公开数据限制说明") }
     public var connectTitle: String { text("App Store Connect", "App Store Connect") }
+    public var generalSettingsTitle: String { text("General", "通用") }
+    public var querySettingsTitle: String { text("Query", "查询") }
+    public var accountSettingsTitle: String { text("Accounts", "账户") }
+    public var countrySettingsTitle: String { text("Countries", "国家和地区") }
+    public var dataSourceSettingsTitle: String { text("Data Sources", "数据源") }
+    public var cacheSettingsTitle: String { text("Cache", "缓存") }
+    public var exportSettingsTitle: String { text("Export", "导出") }
+    public var accessibilitySettingsTitle: String { text("Accessibility", "辅助功能") }
+    public var accountSettingsDescription: String {
+        text(
+            "Account profiles are local region profiles. The app does not store Apple ID passwords. Switching profiles switches the query storefront.",
+            "账户档案是本地地区配置。应用不会保存 Apple ID 密码。切换档案会切换查询商店地区。"
+        )
+    }
+    public var accountListLabel: String { text("Account profiles", "账户档案") }
+    public var addAccountButton: String { text("Add", "添加") }
+    public var deleteAccountButton: String { text("Delete", "删除") }
+    public var validateAccountButton: String { text("Mark Login Pending", "标记等待登录") }
+    public var noAccountSelected: String { text("No account profile selected", "未选择账户档案") }
+    public var accountNamePlaceholder: String { text("Account name", "账户名称") }
+    public var appleAccountPlaceholder: String { text("Apple ID email or note", "Apple ID 邮箱或备注") }
+    public var storefrontIDPlaceholder: String { text("Storefront ID", "Storefront ID") }
+    public var accountNameLabel: String { text("Account profile name", "账户档案名称") }
+    public var appleAccountLabel: String { text("Apple account identifier", "Apple 账户标识") }
+    public var accountCountryLabel: String { text("Account country or region", "账户国家或地区") }
+    public var storefrontIDLabel: String { text("Storefront identifier", "Storefront 标识") }
+    public var accountStatusLabel: String { text("Login status", "登录状态") }
+    public var accountStorageNote: String {
+        text(
+            "Profiles are encrypted locally in Application Support. Passwords are not stored.",
+            "档案会加密保存在本机 Application Support 中，不保存密码。"
+        )
+    }
+    public func newAccountDefaultName(_ index: Int) -> String { text("Account \(index)", "账户 \(index)") }
+    public func selectedAccountProfile(_ name: String, countryCode: String) -> String {
+        text("Selected account \(name), storefront \(countryCode).", "已选择账户 \(name)，商店地区 \(countryCode)。")
+    }
+    public func accountAwaitingUserLogin(_ name: String) -> String {
+        text("\(name) is marked as awaiting user login.", "\(name) 已标记为等待用户登录。")
+    }
+    public func accountSaveFailed(_ message: String) -> String { text("Account save failed: \(message)", "账户保存失败：\(message)") }
+    public func accountSummary(name: String, countryCode: String, status: String) -> String {
+        text("\(name), storefront \(countryCode), status \(status)", "\(name)，商店地区 \(countryCode)，状态 \(status)")
+    }
     public var connectCredentialNote: String {
         text(
             "Credentials are optional and only apply to apps your Apple developer account can access.",
@@ -219,6 +263,19 @@ public struct L10n: Equatable, Sendable {
             return text("Request Failed", "请求失败")
         case .connectUnauthorized:
             return text("Connect Unauthorized", "Connect 未授权")
+        }
+    }
+
+    public func displayName(for status: AccountLoginStatus) -> String {
+        switch status {
+        case .notConfigured:
+            return text("Not Configured", "未配置")
+        case .awaitingUserLogin:
+            return text("Awaiting User Login", "等待用户登录")
+        case .validated:
+            return text("Validated", "已验证")
+        case .failed:
+            return text("Failed", "失败")
         }
     }
 }

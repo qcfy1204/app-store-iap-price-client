@@ -149,6 +149,85 @@ let tests: [(String, () throws -> Void)] = [
             "按名称搜索 App Store 应用，并自动查询所选国家和地区的价格。",
             "Chinese search button hint should describe automatic lookup"
         )
+    }),
+    ("AccountProfile stores local Apple account region metadata without password fields", {
+        let account = AccountProfile(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
+            displayName: "Turkey Apple ID",
+            appleAccount: "turkey@example.com",
+            countryCode: "TR",
+            storefrontID: "143480",
+            loginStatus: .awaitingUserLogin,
+            lastValidatedAt: nil,
+            sessionFileName: "turkey-session.json"
+        )
+
+        try assertEqual(account.displayName, "Turkey Apple ID", "Account display name should be stored")
+        try assertEqual(account.countryCode, "TR", "Account should keep storefront country code")
+        try assertEqual(account.loginStatus, .awaitingUserLogin, "New login should be user-driven")
+    }),
+    ("AccountConfiguration selection switches the active storefront country", {
+        let turkeyID = UUID(uuidString: "00000000-0000-0000-0000-000000000201")!
+        let japanID = UUID(uuidString: "00000000-0000-0000-0000-000000000202")!
+        var configuration = AccountConfiguration(
+            accounts: [
+                AccountProfile(id: turkeyID, displayName: "Turkey", appleAccount: "tr@example.com", countryCode: "TR"),
+                AccountProfile(id: japanID, displayName: "Japan", appleAccount: "jp@example.com", countryCode: "JP")
+            ],
+            selectedAccountID: turkeyID
+        )
+
+        try assertEqual(configuration.selectedAccount?.countryCode, "TR", "Initial selected account should drive Turkey storefront")
+        configuration.selectAccount(id: japanID)
+        try assertEqual(configuration.selectedAccount?.countryCode, "JP", "Switching account should switch storefront")
+    }),
+    ("AccountSecureCodec encrypts local account configuration without plaintext account identifiers", {
+        let configuration = AccountConfiguration(
+            accounts: [
+                AccountProfile(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000301")!,
+                    displayName: "United States",
+                    appleAccount: "us-account@example.com",
+                    countryCode: "US"
+                )
+            ],
+            selectedAccountID: UUID(uuidString: "00000000-0000-0000-0000-000000000301")!
+        )
+        let key = AccountSecureCodec.makeKeyData(seed: "unit-test-key")
+        let encrypted = try AccountSecureCodec.encrypt(configuration, keyData: key)
+        let encryptedText = String(data: encrypted, encoding: .utf8) ?? ""
+
+        try assertTrue(!encryptedText.contains("us-account@example.com"), "Encrypted payload should not contain plaintext Apple account")
+
+        let decrypted = try AccountSecureCodec.decrypt(AccountConfiguration.self, from: encrypted, keyData: key)
+        try assertEqual(decrypted, configuration, "Decrypted configuration should match original")
+    }),
+    ("AccountSecureStore saves encrypted account configuration and reloads it locally", {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("AppStoreIAPClientUnitTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = AccountSecureStore(baseDirectory: directory)
+        let configuration = AccountConfiguration(
+            accounts: [
+                AccountProfile(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000401")!,
+                    displayName: "Japan",
+                    appleAccount: "jp-account@example.com",
+                    countryCode: "JP"
+                )
+            ],
+            selectedAccountID: UUID(uuidString: "00000000-0000-0000-0000-000000000401")!
+        )
+
+        try store.save(configuration)
+        let raw = try Data(contentsOf: directory.appendingPathComponent("credentials.enc"))
+        let rawText = String(data: raw, encoding: .utf8) ?? ""
+        try assertTrue(!rawText.contains("jp-account@example.com"), "Saved credential file should be encrypted")
+
+        let loaded = try store.load()
+        try assertEqual(loaded, configuration, "Loaded account configuration should match saved configuration")
     })
 ]
 

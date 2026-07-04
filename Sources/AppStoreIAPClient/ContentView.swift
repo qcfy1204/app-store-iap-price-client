@@ -23,7 +23,7 @@ struct ContentView: View {
         .accessibilityLabel(viewModel.l10n.appAccessibilityTitle)
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(viewModel: viewModel)
-                .frame(minWidth: 520, minHeight: 260)
+                .frame(minWidth: 940, minHeight: 620)
         }
     }
 
@@ -40,6 +40,13 @@ struct ContentView: View {
                     .truncationMode(.middle)
                     .accessibilityLabel(viewModel.l10n.selectedAppLabel)
                     .accessibilityValue(viewModel.selectedAppSummary)
+                Text(viewModel.selectedAccountSummary)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .accessibilityLabel(viewModel.l10n.accountSettingsTitle)
+                    .accessibilityValue(viewModel.selectedAccountSummary)
             }
 
             Spacer()

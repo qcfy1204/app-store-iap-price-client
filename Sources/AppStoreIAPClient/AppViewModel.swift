@@ -16,14 +16,21 @@ final class AppViewModel: ObservableObject {
     @Published var issuerID = ""
     @Published var keyID = ""
     @Published var privateKeyPath = ""
+    @Published var accountConfiguration: AccountConfiguration
 
     let l10n: L10n
     private let publicClient = AppStorePublicClient()
+    private let accountStore: AccountSecureStore
     private var queryTask: Task<Void, Never>?
 
     init(l10n: L10n = L10n()) {
         self.l10n = l10n
         self.statusMessage = l10n.ready
+        self.accountStore = AccountSecureStore(baseDirectory: Self.defaultAccountStoreDirectory())
+        self.accountConfiguration = (try? accountStore.load()) ?? AccountConfiguration()
+        if let account = accountConfiguration.selectedAccount {
+            self.selectedCountryCodes = [account.countryCode]
+        }
     }
 
     var selectedStorefronts: [Storefront] {
@@ -38,6 +45,21 @@ final class AppViewModel: ObservableObject {
             name: selectedApp.name,
             developer: selectedApp.developerName,
             appID: selectedApp.appId
+        )
+    }
+
+    var selectedAccount: AccountProfile? {
+        accountConfiguration.selectedAccount
+    }
+
+    var selectedAccountSummary: String {
+        guard let selectedAccount else {
+            return l10n.noAccountSelected
+        }
+        return l10n.accountSummary(
+            name: selectedAccount.displayName,
+            countryCode: selectedAccount.countryCode,
+            status: l10n.displayName(for: selectedAccount.loginStatus)
         )
     }
 
@@ -145,6 +167,60 @@ final class AppViewModel: ObservableObject {
             return
         }
         startQuery()
+    }
+
+    func addAccountProfile() {
+        let existingCount = accountConfiguration.accounts.count + 1
+        let countryCode = selectedCountryCodes.first ?? "US"
+        let account = AccountProfile(
+            displayName: l10n.newAccountDefaultName(existingCount),
+            countryCode: countryCode,
+            loginStatus: .awaitingUserLogin
+        )
+        accountConfiguration.upsert(account)
+        selectAccount(account.id)
+        saveAccounts()
+    }
+
+    func updateAccountProfile(_ account: AccountProfile) {
+        accountConfiguration.upsert(account)
+        if accountConfiguration.selectedAccountID == account.id {
+            selectedCountryCodes = [account.countryCode]
+        }
+        saveAccounts()
+    }
+
+    func selectAccount(_ id: UUID?) {
+        accountConfiguration.selectAccount(id: id)
+        if let account = accountConfiguration.selectedAccount {
+            selectedCountryCodes = [account.countryCode]
+            statusMessage = l10n.selectedAccountProfile(account.displayName, countryCode: account.countryCode)
+        } else {
+            statusMessage = l10n.noAccountSelected
+        }
+        saveAccounts()
+    }
+
+    func deleteSelectedAccount() {
+        guard let id = accountConfiguration.selectedAccountID else {
+            return
+        }
+        accountConfiguration.deleteAccount(id: id)
+        if let account = accountConfiguration.selectedAccount {
+            selectedCountryCodes = [account.countryCode]
+        }
+        saveAccounts()
+    }
+
+    func markSelectedAccountAwaitingLogin() {
+        guard var account = accountConfiguration.selectedAccount else {
+            return
+        }
+        account.loginStatus = .awaitingUserLogin
+        account.lastValidatedAt = nil
+        accountConfiguration.upsert(account)
+        saveAccounts()
+        statusMessage = l10n.accountAwaitingUserLogin(account.displayName)
     }
 
     func selectAllCountries() {
@@ -273,5 +349,19 @@ final class AppViewModel: ObservableObject {
             return base
         }
         return "\(base) \(l10n.storefrontLocalizedNameNote(storefrontApp.name))"
+    }
+
+    private func saveAccounts() {
+        do {
+            try accountStore.save(accountConfiguration)
+        } catch {
+            statusMessage = l10n.accountSaveFailed(error.localizedDescription)
+        }
+    }
+
+    private static func defaultAccountStoreDirectory() -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return base.appendingPathComponent("AppStoreIAPClient", isDirectory: true)
     }
 }
