@@ -6,19 +6,8 @@ struct PriceMatrixView: View {
     @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Text(viewModel.statusMessage)
-                    .font(.callout)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .accessibilityLabel(viewModel.l10n.queryStatusLabel)
-                    .accessibilityValue(viewModel.statusMessage)
-
-                Spacer()
-
-                summaryStrip
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            statusHeader
 
             Table(viewModel.resultRows) {
                 TableColumn(viewModel.l10n.countryColumn) { row in
@@ -80,30 +69,34 @@ struct PriceMatrixView: View {
             .accessibilityLabel(viewModel.l10n.resultTableLabel)
             .accessibilityValue(viewModel.querySummaryText)
 
-            HStack(spacing: 12) {
-                Text(viewModel.l10n.publicDataLimitation)
+            footerBar
+        }
+    }
+
+    private var statusHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(viewModel.statusMessage)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .accessibilityLabel(viewModel.l10n.queryStatusLabel)
+                    .accessibilityValue(viewModel.statusMessage)
+
+                Text(viewModel.querySummaryText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .accessibilityLabel(viewModel.l10n.publicDataLimitationLabel)
-
-                Spacer()
-
-                Button(viewModel.l10n.exportCSVButton) {
-                    saveExport(extensionName: "csv", action: viewModel.exportCSV)
-                }
-                .disabled(viewModel.resultRows.isEmpty)
-                .accessibilityLabel(viewModel.l10n.exportCSVButton)
-                .accessibilityHint(viewModel.l10n.exportCSVHint)
-
-                Button(viewModel.l10n.exportJSONButton) {
-                    saveExport(extensionName: "json", action: viewModel.exportJSON)
-                }
-                .disabled(viewModel.resultRows.isEmpty)
-                .accessibilityLabel(viewModel.l10n.exportJSONButton)
-                .accessibilityHint(viewModel.l10n.exportJSONHint)
+                    .lineLimit(1)
+                    .accessibilityHidden(true)
             }
+
+            Spacer()
+
+            summaryStrip
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var summaryStrip: some View {
@@ -116,6 +109,34 @@ struct PriceMatrixView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(viewModel.l10n.querySummaryLabel)
         .accessibilityValue(viewModel.querySummaryText)
+    }
+
+    private var footerBar: some View {
+        HStack(spacing: 12) {
+            Text(viewModel.l10n.publicDataLimitation)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .accessibilityLabel(viewModel.l10n.publicDataLimitationLabel)
+
+            Spacer()
+
+            Button(viewModel.l10n.exportCSVButton) {
+                saveExport(extensionName: "csv", action: viewModel.exportCSV)
+            }
+            .buttonStyle(.bordered)
+            .disabled(viewModel.resultRows.isEmpty)
+            .accessibilityLabel(viewModel.l10n.exportCSVButton)
+            .accessibilityHint(viewModel.l10n.exportCSVHint)
+
+            Button(viewModel.l10n.exportJSONButton) {
+                saveExport(extensionName: "json", action: viewModel.exportJSON)
+            }
+            .buttonStyle(.bordered)
+            .disabled(viewModel.resultRows.isEmpty)
+            .accessibilityLabel(viewModel.l10n.exportJSONButton)
+            .accessibilityHint(viewModel.l10n.exportJSONHint)
+        }
     }
 
     private func priceText(_ price: Decimal?) -> String {
@@ -157,7 +178,11 @@ private struct SummaryBadge: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(Color(nsColor: .windowBackgroundColor))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 0.5)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }

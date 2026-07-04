@@ -10,13 +10,20 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+
+            VStack(spacing: 10) {
+                queryBar
+                searchResultsBar
+                scopeBar
+            }
+            .padding(16)
+            .background(Color(nsColor: .windowBackgroundColor))
+
             Divider()
-            queryBar
-            searchResultsBar
-            scopeBar
-            Divider()
+
             PriceMatrixView(viewModel: viewModel)
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
         }
         .frame(minWidth: 980, minHeight: 620)
         .background(Color(nsColor: .windowBackgroundColor))
@@ -28,11 +35,12 @@ struct ContentView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(viewModel.l10n.appTitle)
-                    .font(.headline)
+                    .font(.title3.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
+
                 Text(viewModel.selectedAppSummary)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -40,6 +48,7 @@ struct ContentView: View {
                     .truncationMode(.middle)
                     .accessibilityLabel(viewModel.l10n.selectedAppLabel)
                     .accessibilityValue(viewModel.selectedAppSummary)
+
                 Text(viewModel.selectedAccountSummary)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -54,30 +63,35 @@ struct ContentView: View {
             Button(viewModel.l10n.settingsButton) {
                 isShowingSettings = true
             }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
             .accessibilityLabel(viewModel.l10n.openSettingsLabel)
             .accessibilityHint(viewModel.l10n.openSettingsHint)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
         .background(Color(nsColor: .controlBackgroundColor))
     }
 
     private var queryBar: some View {
-        Grid(horizontalSpacing: 10, verticalSpacing: 8) {
-            GridRow {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
                 TextField(viewModel.l10n.appNamePlaceholder, text: $viewModel.searchText)
                     .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 180)
                     .accessibilityLabel(viewModel.l10n.appNameSearchFieldLabel)
                     .accessibilityHint(viewModel.l10n.appNameSearchFieldHint)
 
                 Button(viewModel.l10n.searchButton, action: viewModel.searchApps)
                     .keyboardShortcut(.return, modifiers: [])
                     .disabled(viewModel.isSearching)
+                    .buttonStyle(.borderedProminent)
                     .accessibilityLabel(viewModel.l10n.searchAppsLabel)
                     .accessibilityHint(viewModel.l10n.searchAppsHint)
 
                 TextField(viewModel.l10n.directLookupPlaceholder, text: $viewModel.directLookupText)
                     .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 240)
                     .accessibilityLabel(viewModel.l10n.directLookupFieldLabel)
                     .accessibilityHint(viewModel.l10n.directLookupFieldHint)
 
@@ -89,6 +103,7 @@ struct ContentView: View {
                 Button(viewModel.l10n.startQueryButton, action: viewModel.startQuery)
                     .keyboardShortcut("r", modifiers: [.command])
                     .disabled(viewModel.isQuerying)
+                    .buttonStyle(.bordered)
                     .accessibilityLabel(viewModel.l10n.startQueryLabel)
                     .accessibilityHint(viewModel.l10n.startQueryHint)
 
@@ -98,10 +113,6 @@ struct ContentView: View {
                     .accessibilityLabel(viewModel.l10n.cancelQueryLabel)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, viewModel.searchResults.isEmpty ? 12 : 8)
-        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     @ViewBuilder
@@ -128,8 +139,9 @@ struct ContentView: View {
                 .accessibilityLabel(viewModel.l10n.appSearchResultsLabel)
                 .accessibilityHint(viewModel.l10n.selectAppHint)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 10)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
     }
 
@@ -140,18 +152,22 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
 
             Button(viewModel.l10n.allButton, action: viewModel.selectAllCountries)
+                .buttonStyle(.bordered)
                 .accessibilityLabel(viewModel.l10n.selectAllCountriesLabel)
 
             Button(viewModel.l10n.majorButton, action: viewModel.selectMajorCountries)
+                .buttonStyle(.bordered)
                 .accessibilityLabel(viewModel.l10n.selectMajorCountriesLabel)
                 .accessibilityHint(viewModel.l10n.selectMajorCountriesHint)
 
             Button(viewModel.l10n.clearButton, action: viewModel.clearCountries)
+                .buttonStyle(.bordered)
                 .accessibilityLabel(viewModel.l10n.clearSelectedCountriesLabel)
 
             Button(viewModel.l10n.customCountriesButton) {
                 isShowingCountryEditor.toggle()
             }
+            .buttonStyle(.bordered)
             .popover(isPresented: $isShowingCountryEditor, arrowEdge: .bottom) {
                 countryEditor
                     .frame(width: 360, height: 420)
@@ -163,13 +179,14 @@ struct ContentView: View {
             Text(viewModel.l10n.selectedCountryCount(viewModel.selectedCountryCodes.count))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .accessibilityLabel(viewModel.l10n.selectedCountryCountLabel)
                 .accessibilityValue("\(viewModel.selectedCountryCodes.count)")
 
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 10)
     }
 
     private var countryEditor: some View {

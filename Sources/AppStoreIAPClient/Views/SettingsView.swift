@@ -9,10 +9,12 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(SettingsSection.allCases, selection: $selectedSection) { section in
-                Text(title(for: section))
+                Label(title(for: section), systemImage: symbol(for: section))
+                    .labelStyle(.titleAndIcon)
                     .tag(section)
             }
             .navigationSplitViewColumnWidth(min: 150, ideal: 170)
+            .listStyle(.sidebar)
             .accessibilityLabel(viewModel.l10n.settingsLabel)
         } detail: {
             VStack(alignment: .leading, spacing: 0) {
@@ -25,6 +27,7 @@ struct SettingsView: View {
                     Text(viewModel.l10n.accountStorageNote)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
                     Spacer()
                     Button(viewModel.l10n.doneButton) {
                         dismiss()
@@ -65,13 +68,10 @@ struct SettingsView: View {
     private var accountsSection: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(viewModel.l10n.accountSettingsTitle)
-                    .font(.headline)
-                    .accessibilityAddTraits(.isHeader)
-
-                Text(viewModel.l10n.accountSettingsDescription)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                sectionHeader(
+                    title: viewModel.l10n.accountSettingsTitle,
+                    text: viewModel.l10n.accountSettingsDescription
+                )
 
                 List(selection: Binding(
                     get: { viewModel.accountConfiguration.selectedAccountID },
@@ -94,14 +94,22 @@ struct SettingsView: View {
                     }
                 }
                 .accessibilityLabel(viewModel.l10n.accountListLabel)
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
+                )
 
                 HStack {
                     Button(viewModel.l10n.addAccountButton, action: viewModel.addAccountProfile)
+                        .buttonStyle(.borderedProminent)
                     Button(viewModel.l10n.deleteAccountButton, action: viewModel.deleteSelectedAccount)
+                        .buttonStyle(.bordered)
                         .disabled(viewModel.selectedAccount == nil)
                 }
+                .controlSize(.regular)
             }
-            .frame(width: 260)
+            .frame(width: 290)
             .padding()
 
             Divider()
@@ -115,20 +123,18 @@ struct SettingsView: View {
                 )
                 .padding()
             } else {
-                placeholderSection(title: viewModel.l10n.accountSettingsTitle, text: viewModel.l10n.noAccountSelected)
+                emptyAccountState
             }
         }
     }
 
     private var connectSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(viewModel.l10n.connectTitle)
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(viewModel.l10n.connectCredentialNote)
-                .foregroundStyle(.secondary)
-                .accessibilityLabel(viewModel.l10n.connectCredentialNoteLabel)
+            sectionHeader(
+                title: viewModel.l10n.connectTitle,
+                text: viewModel.l10n.connectCredentialNote
+            )
+            .accessibilityLabel(viewModel.l10n.connectCredentialNoteLabel)
 
             Form {
                 TextField(viewModel.l10n.issuerIDPlaceholder, text: $viewModel.issuerID)
@@ -148,14 +154,44 @@ struct SettingsView: View {
     }
 
     private func placeholderSection(title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-            Text(text)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(title: title, text: text)
+
+            Spacer()
         }
         .padding()
+    }
+
+    private var emptyAccountState: some View {
+        VStack(alignment: .center, spacing: 12) {
+            Image(systemName: "person.crop.circle.badge.plus")
+                .font(.system(size: 36, weight: .regular))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text(viewModel.l10n.noAccountSelected)
+                .font(.headline)
+            Text(viewModel.l10n.accountSettingsDescription)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 420)
+            Button(viewModel.l10n.addAccountButton, action: viewModel.addAccountProfile)
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    private func sectionHeader(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.title3.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            Text(text)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var accountBinding: Binding<AccountProfile>? {
@@ -193,6 +229,29 @@ struct SettingsView: View {
             return viewModel.l10n.accessibilitySettingsTitle
         }
     }
+
+    private func symbol(for section: SettingsSection) -> String {
+        switch section {
+        case .general:
+            return "gearshape"
+        case .query:
+            return "magnifyingglass"
+        case .accounts:
+            return "person.2"
+        case .countries:
+            return "globe"
+        case .dataSources:
+            return "server.rack"
+        case .appStoreConnect:
+            return "key"
+        case .cache:
+            return "internaldrive"
+        case .export:
+            return "square.and.arrow.up"
+        case .accessibility:
+            return "accessibility"
+        }
+    }
 }
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
@@ -216,39 +275,81 @@ private struct AccountEditorView: View {
     let onMarkPending: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(account.displayName.isEmpty ? l10n.accountSettingsTitle : account.displayName)
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-
-            Form {
-                TextField(l10n.accountNamePlaceholder, text: savingBinding(\.displayName))
-                    .accessibilityLabel(l10n.accountNameLabel)
-
-                TextField(l10n.appleAccountPlaceholder, text: savingBinding(\.appleAccount))
-                    .accessibilityLabel(l10n.appleAccountLabel)
-
-                Picker(l10n.accountCountryLabel, selection: savingBinding(\.countryCode)) {
-                    ForEach(CountryStorefrontCatalog.all) { storefront in
-                        Text("\(storefront.displayName) (\(storefront.countryCode))")
-                            .tag(storefront.countryCode)
-                    }
-                }
-                .accessibilityLabel(l10n.accountCountryLabel)
-
-                TextField(l10n.storefrontIDPlaceholder, text: optionalSavingBinding(\.storefrontID))
-                    .accessibilityLabel(l10n.storefrontIDLabel)
-
-                HStack {
-                    Text(l10n.accountStatusLabel)
-                    Spacer()
-                    Text(l10n.displayName(for: account.loginStatus))
-                        .foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(account.displayName.isEmpty ? l10n.accountSettingsTitle : account.displayName)
+                    .font(.title3.weight(.semibold))
+                    .accessibilityAddTraits(.isHeader)
+                Text(l10n.accountSummary(
+                    name: account.displayName.isEmpty ? l10n.noAccountSelected : account.displayName,
+                    countryCode: account.countryCode,
+                    status: l10n.displayName(for: account.loginStatus)
+                ))
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
 
+            VStack(alignment: .leading, spacing: 14) {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
+                    GridRow {
+                        Text(l10n.accountNameLabel)
+                            .foregroundStyle(.secondary)
+                        TextField(l10n.accountNamePlaceholder, text: savingBinding(\.displayName))
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel(l10n.accountNameLabel)
+                    }
+
+                    GridRow {
+                        Text(l10n.appleAccountLabel)
+                            .foregroundStyle(.secondary)
+                        TextField(l10n.appleAccountPlaceholder, text: savingBinding(\.appleAccount))
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel(l10n.appleAccountLabel)
+                    }
+
+                    GridRow {
+                        Text(l10n.accountCountryLabel)
+                            .foregroundStyle(.secondary)
+                        Picker(l10n.accountCountryLabel, selection: savingBinding(\.countryCode)) {
+                            ForEach(CountryStorefrontCatalog.all) { storefront in
+                                Text("\(storefront.displayName) (\(storefront.countryCode))")
+                                    .tag(storefront.countryCode)
+                            }
+                        }
+                        .labelsHidden()
+                        .accessibilityLabel(l10n.accountCountryLabel)
+                    }
+
+                    GridRow {
+                        Text(l10n.storefrontIDLabel)
+                            .foregroundStyle(.secondary)
+                        TextField(l10n.storefrontIDPlaceholder, text: optionalSavingBinding(\.storefrontID))
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel(l10n.storefrontIDLabel)
+                    }
+
+                    GridRow {
+                        Text(l10n.accountStatusLabel)
+                            .foregroundStyle(.secondary)
+                        Text(l10n.displayName(for: account.loginStatus))
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                }
+            }
+            .padding(16)
+            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
+            )
+
             Button(l10n.validateAccountButton, action: onMarkPending)
+                .buttonStyle(.bordered)
                 .accessibilityLabel(l10n.validateAccountButton)
+
+            Spacer()
         }
     }
 
