@@ -6,7 +6,7 @@ struct PriceMatrixView: View {
     @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             statusHeader
 
             Table(viewModel.resultRows) {
@@ -65,10 +65,11 @@ struct PriceMatrixView: View {
                 .width(min: 260, ideal: 360)
             }
             .alternatingRowBackgrounds(.enabled)
-            .frame(minHeight: 380)
+            .frame(minHeight: 330)
             .accessibilityLabel(viewModel.l10n.resultTableLabel)
             .accessibilityValue(viewModel.querySummaryText)
 
+            Divider()
             footerBar
         }
     }
@@ -76,35 +77,38 @@ struct PriceMatrixView: View {
     private var statusHeader: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(viewModel.statusMessage)
+                Text(viewModel.querySummaryText)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .accessibilityLabel(viewModel.l10n.queryStatusLabel)
-                    .accessibilityValue(viewModel.statusMessage)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(viewModel.l10n.querySummaryLabel)
+                    .accessibilityValue(viewModel.querySummaryText)
 
-                Text(viewModel.querySummaryText)
+                Text(viewModel.statusMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .accessibilityHidden(true)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(viewModel.l10n.queryStatusLabel)
+                    .accessibilityValue(viewModel.statusMessage)
             }
 
             Spacer()
 
             summaryStrip
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var summaryStrip: some View {
-        HStack(spacing: 10) {
-            SummaryBadge(label: viewModel.l10n.completedSummaryLabel, value: "\(viewModel.summary.completedCountries)/\(viewModel.summary.totalCountries)", tint: .blue)
-            SummaryBadge(label: viewModel.l10n.availableSummaryLabel, value: "\(viewModel.summary.availableRows)", tint: .green)
-            SummaryBadge(label: viewModel.l10n.missingSummaryLabel, value: "\(viewModel.summary.missingRows)", tint: .orange)
-            SummaryBadge(label: viewModel.l10n.failedSummaryLabel, value: "\(viewModel.summary.failedRows)", tint: .red)
+        HStack(spacing: 8) {
+            SummaryItem(label: viewModel.l10n.completedSummaryLabel, value: "\(viewModel.summary.completedCountries)/\(viewModel.summary.totalCountries)")
+            Divider().frame(height: 14)
+            SummaryItem(label: viewModel.l10n.availableSummaryLabel, value: "\(viewModel.summary.availableRows)")
+            Divider().frame(height: 14)
+            SummaryItem(label: viewModel.l10n.missingSummaryLabel, value: "\(viewModel.summary.missingRows)")
+            Divider().frame(height: 14)
+            SummaryItem(label: viewModel.l10n.failedSummaryLabel, value: "\(viewModel.summary.failedRows)")
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(viewModel.l10n.querySummaryLabel)
@@ -116,7 +120,8 @@ struct PriceMatrixView: View {
             Text(viewModel.l10n.publicDataLimitation)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(2)
+                .lineLimit(1)
+                .truncationMode(.tail)
                 .accessibilityLabel(viewModel.l10n.publicDataLimitationLabel)
 
             Spacer()
@@ -157,17 +162,12 @@ struct PriceMatrixView: View {
     }
 }
 
-private struct SummaryBadge: View {
+private struct SummaryItem: View {
     let label: String
     let value: String
-    let tint: Color
 
     var body: some View {
         HStack(spacing: 6) {
-            Circle()
-                .fill(tint)
-                .frame(width: 7, height: 7)
-                .accessibilityHidden(true)
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -176,13 +176,5 @@ private struct SummaryBadge: View {
                 .fontWeight(.semibold)
                 .monospacedDigit()
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }

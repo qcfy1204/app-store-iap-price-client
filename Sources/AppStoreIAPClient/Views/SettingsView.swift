@@ -1,10 +1,12 @@
 import SwiftUI
+import AppKit
 import AppStoreIAPClientCore
 
 struct SettingsView: View {
     @ObservedObject var viewModel: AppViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedSection: SettingsSection = .accounts
+    @State private var accountMode: AccountManagementMode = .list
 
     var body: some View {
         NavigationSplitView {
@@ -13,7 +15,7 @@ struct SettingsView: View {
                     .labelStyle(.titleAndIcon)
                     .tag(section)
             }
-            .navigationSplitViewColumnWidth(min: 150, ideal: 170)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 180, max: 180)
             .listStyle(.sidebar)
             .accessibilityLabel(viewModel.l10n.settingsLabel)
         } detail: {
@@ -23,7 +25,7 @@ struct SettingsView: View {
 
                 Divider()
 
-                HStack {
+                HStack(spacing: 12) {
                     Text(viewModel.l10n.accountStorageNote)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -35,137 +37,247 @@ struct SettingsView: View {
                     .keyboardShortcut(.defaultAction)
                     .accessibilityLabel(viewModel.l10n.closeSettingsLabel)
                 }
-                .padding()
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
             }
         }
-        .accessibilityLabel(viewModel.l10n.settingsLabel)
+        .frame(idealWidth: 770, idealHeight: 660)
+        .onChange(of: viewModel.accountLoginCompletion) {
+            accountMode = .list
+        }
     }
 
     @ViewBuilder
     private var detailView: some View {
         switch selectedSection {
         case .general:
-            placeholderSection(title: viewModel.l10n.generalSettingsTitle, text: viewModel.l10n.appTitle)
-        case .query:
-            placeholderSection(title: viewModel.l10n.querySettingsTitle, text: viewModel.selectedAccountSummary)
+            settingsPage(title: viewModel.l10n.generalSettingsTitle, description: viewModel.l10n.generalSettingsDescription) {
+                settingsGrid {
+                    SettingsRow(title: viewModel.l10n.selectedAppSettingLabel) {
+                        Text(viewModel.selectedAppSummary)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+                            .accessibilityLabel(viewModel.l10n.selectedAppLabel)
+                    }
+                    SettingsRow(title: viewModel.l10n.currentAccountSettingLabel) {
+                        Text(viewModel.selectedAccountSummary)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+                    }
+                    SettingsRow(title: viewModel.l10n.statusSettingLabel) {
+                        Text(viewModel.statusMessage)
+                            .lineLimit(2)
+                    }
+                    SettingsRow(title: viewModel.l10n.runtimeSettingLabel) {
+                        Text(viewModel.accountRuntimeStatus)
+                            .lineLimit(3)
+                    }
+                }
+            }
         case .accounts:
             accountsSection
-        case .countries:
-            placeholderSection(title: viewModel.l10n.countrySettingsTitle, text: viewModel.l10n.selectedCountryCount(viewModel.selectedCountryCodes.count))
+        case .query:
+            settingsPage(title: viewModel.l10n.querySettingsTitle, description: viewModel.l10n.querySettingsDescription) {
+                settingsGrid {
+                    SettingsRow(title: viewModel.l10n.dataSourceMenuTitle) {
+                        Text(viewModel.l10n.displayName(for: viewModel.dataSourceMode))
+                    }
+                    SettingsRow(title: viewModel.l10n.selectedAppSettingLabel) {
+                        Text(viewModel.selectedAppSummary)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
         case .dataSources:
-            placeholderSection(title: viewModel.l10n.dataSourceSettingsTitle, text: viewModel.l10n.publicDataLimitation)
-        case .appStoreConnect:
-            connectSection
-        case .cache:
-            placeholderSection(title: viewModel.l10n.cacheSettingsTitle, text: viewModel.l10n.accountStorageNote)
+            dataSourcesSection
         case .export:
-            placeholderSection(title: viewModel.l10n.exportSettingsTitle, text: viewModel.l10n.exportBaseFileName)
+            exportSection
         case .accessibility:
-            placeholderSection(title: viewModel.l10n.accessibilitySettingsTitle, text: viewModel.l10n.appAccessibilityTitle)
+            accessibilitySection
         }
     }
 
     private var accountsSection: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 10) {
-                sectionHeader(
-                    title: viewModel.l10n.accountSettingsTitle,
-                    text: viewModel.l10n.accountSettingsDescription
-                )
-
-                List(selection: Binding(
-                    get: { viewModel.accountConfiguration.selectedAccountID },
-                    set: { viewModel.selectAccount($0) }
-                )) {
-                    ForEach(viewModel.accountConfiguration.accounts) { account in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(account.displayName)
-                                .lineLimit(1)
-                            Text("\(account.countryCode) - \(viewModel.l10n.displayName(for: account.loginStatus))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .tag(Optional(account.id))
-                        .accessibilityLabel(viewModel.l10n.accountSummary(
-                            name: account.displayName,
-                            countryCode: account.countryCode,
-                            status: viewModel.l10n.displayName(for: account.loginStatus)
-                        ))
-                    }
-                }
-                .accessibilityLabel(viewModel.l10n.accountListLabel)
-                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
-                )
-
-                HStack {
-                    Button(viewModel.l10n.addAccountButton, action: viewModel.addAccountProfile)
-                        .buttonStyle(.borderedProminent)
-                    Button(viewModel.l10n.deleteAccountButton, action: viewModel.deleteSelectedAccount)
-                        .buttonStyle(.bordered)
-                        .disabled(viewModel.selectedAccount == nil)
-                }
-                .controlSize(.regular)
-            }
-            .frame(width: 290)
-            .padding()
-
-            Divider()
-
-            if let accountBinding {
-                AccountEditorView(
-                    account: accountBinding,
-                    l10n: viewModel.l10n,
-                    onSave: viewModel.updateAccountProfile,
-                    onMarkPending: viewModel.markSelectedAccountAwaitingLogin
-                )
-                .padding()
-            } else {
-                emptyAccountState
-            }
-        }
-    }
-
-    private var connectSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             sectionHeader(
-                title: viewModel.l10n.connectTitle,
-                text: viewModel.l10n.connectCredentialNote
+                title: viewModel.l10n.accountSettingsTitle,
+                text: viewModel.l10n.accountSettingsDescription
             )
-            .accessibilityLabel(viewModel.l10n.connectCredentialNoteLabel)
 
-            Form {
-                TextField(viewModel.l10n.issuerIDPlaceholder, text: $viewModel.issuerID)
-                    .accessibilityLabel(viewModel.l10n.issuerIDLabel)
-                    .accessibilityHint(viewModel.l10n.issuerIDHint)
-
-                TextField(viewModel.l10n.keyIDPlaceholder, text: $viewModel.keyID)
-                    .accessibilityLabel(viewModel.l10n.keyIDLabel)
-                    .accessibilityHint(viewModel.l10n.keyIDHint)
-
-                TextField(viewModel.l10n.privateKeyPathPlaceholder, text: $viewModel.privateKeyPath)
-                    .accessibilityLabel(viewModel.l10n.privateKeyPathLabel)
-                    .accessibilityHint(viewModel.l10n.privateKeyPathHint)
+            switch accountMode {
+            case .list:
+                compactAccountList
+            case .editor:
+                if let accountBinding {
+                    AccountEditorView(
+                        account: accountBinding,
+                        password: $viewModel.accountPassword,
+                        twoFactorCode: $viewModel.accountTwoFactorCode,
+                        isLoggingIn: viewModel.isLoggingIn,
+                        needsTwoFactor: viewModel.selectedAccountNeedsTwoFactor,
+                        statusMessage: viewModel.statusMessage,
+                        l10n: viewModel.l10n,
+                        loginButtonTitle: viewModel.accountLoginButtonTitle,
+                        onSave: viewModel.updateAccountProfile,
+                        onLogin: viewModel.loginSelectedAccount
+                    )
+                } else {
+                    emptyAccountState
+                }
             }
         }
-        .padding()
+        .padding(18)
     }
 
-    private func placeholderSection(title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(title: title, text: text)
+    private var compactAccountList: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            List(selection: Binding(
+                get: { viewModel.accountConfiguration.selectedAccountID },
+                set: { viewModel.selectAccount($0) }
+            )) {
+                ForEach(viewModel.accountConfiguration.accounts) { account in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(account.accountSwitchingTitle)
+                            .lineLimit(1)
+                        Text("\(account.countryCode) - \(viewModel.l10n.displayName(for: account.loginStatus))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .tag(Optional(account.id))
+                    .accessibilityLabel(viewModel.l10n.accountSummary(
+                        name: account.accountSwitchingTitle,
+                        countryCode: account.countryCode,
+                        status: viewModel.l10n.displayName(for: account.loginStatus)
+                    ))
+                }
+            }
+            .frame(minHeight: 260)
+            .accessibilityLabel(viewModel.l10n.accountListLabel)
 
-            Spacer()
+            HStack(spacing: 8) {
+                Button(viewModel.l10n.addAccountButton) {
+                    viewModel.addAccountProfile()
+                    accountMode = .editor
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(viewModel.l10n.editButton) {
+                    accountMode = .editor
+                }
+                .buttonStyle(.bordered)
+                .disabled(viewModel.selectedAccount == nil)
+
+                Button(viewModel.l10n.deleteAccountButton) {
+                    viewModel.deleteSelectedAccount()
+                }
+                .buttonStyle(.bordered)
+                .disabled(viewModel.selectedAccount == nil)
+            }
         }
-        .padding()
+        .frame(maxWidth: 520, alignment: .leading)
+    }
+
+    private var dataSourcesSection: some View {
+        settingsPage(title: viewModel.l10n.dataSourceSettingsTitle, description: viewModel.l10n.dataSourceSettingsDescription) {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(viewModel.l10n.publicStorefrontSettingLabel)
+                        .foregroundStyle(.secondary)
+                    Text(viewModel.l10n.publicDataLimitation)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(viewModel.l10n.publicDataLimitationLabel)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(viewModel.l10n.connectTitle)
+                        .foregroundStyle(.secondary)
+                    Text(viewModel.l10n.connectCredentialNote)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(viewModel.l10n.connectCredentialNoteLabel)
+                }
+
+                LabeledField(
+                    title: viewModel.l10n.issuerIDLabel,
+                    placeholder: viewModel.l10n.issuerIDPlaceholder,
+                    text: $viewModel.issuerID,
+                    hint: viewModel.l10n.issuerIDHint
+                )
+
+                LabeledField(
+                    title: viewModel.l10n.keyIDLabel,
+                    placeholder: viewModel.l10n.keyIDPlaceholder,
+                    text: $viewModel.keyID,
+                    hint: viewModel.l10n.keyIDHint
+                )
+
+                LabeledField(
+                    title: viewModel.l10n.privateKeyPathLabel,
+                    placeholder: viewModel.l10n.privateKeyPathPlaceholder,
+                    text: $viewModel.privateKeyPath,
+                    hint: viewModel.l10n.privateKeyPathHint
+                )
+            }
+            .frame(width: 520, alignment: .leading)
+        }
+    }
+
+    private var exportSection: some View {
+        settingsPage(title: viewModel.l10n.exportSettingsTitle, description: viewModel.l10n.exportSettingsDescription) {
+            settingsGrid {
+                SettingsRow(title: viewModel.l10n.exportFormatSettingLabel) {
+                    HStack(spacing: 8) {
+                        Button(viewModel.l10n.exportCSVButton) {
+                            saveExport(extensionName: "csv", action: viewModel.exportCSV)
+                        }
+                        .disabled(viewModel.resultRows.isEmpty)
+                        .accessibilityHint(viewModel.l10n.exportCSVHint)
+
+                        Button(viewModel.l10n.exportJSONButton) {
+                            saveExport(extensionName: "json", action: viewModel.exportJSON)
+                        }
+                        .disabled(viewModel.resultRows.isEmpty)
+                        .accessibilityHint(viewModel.l10n.exportJSONHint)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                SettingsRow(title: viewModel.l10n.resultTableLabel) {
+                    Text(viewModel.querySummaryText)
+                }
+                SettingsRow(title: viewModel.l10n.exportFileNameSettingLabel) {
+                    Text(viewModel.l10n.exportBaseFileName)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+            }
+        }
+    }
+
+    private var accessibilitySection: some View {
+        settingsPage(title: viewModel.l10n.accessibilitySettingsTitle, description: viewModel.l10n.accessibilitySettingsDescription) {
+            settingsGrid {
+                SettingsRow(title: viewModel.l10n.accessibilityVoiceOverLabel) {
+                    Text(viewModel.l10n.accessibilityVoiceOverDescription)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                SettingsRow(title: viewModel.l10n.accessibilityKeyboardLabel) {
+                    Text(viewModel.l10n.accessibilityKeyboardDescription)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                SettingsRow(title: viewModel.l10n.accessibilityLanguageLabel) {
+                    Text(viewModel.l10n.accessibilityLanguageDescription)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 
     private var emptyAccountState: some View {
         VStack(alignment: .center, spacing: 12) {
             Image(systemName: "person.crop.circle.badge.plus")
-                .font(.system(size: 36, weight: .regular))
+                .font(.system(size: 28, weight: .regular))
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             Text(viewModel.l10n.noAccountSelected)
@@ -174,12 +286,28 @@ struct SettingsView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 420)
+                .frame(maxWidth: 360)
             Button(viewModel.l10n.addAccountButton, action: viewModel.addAccountProfile)
                 .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .padding(18)
+    }
+
+    private func settingsPage<Content: View>(
+        title: String,
+        description: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader(title: title, text: description)
+            content()
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: 560, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 18)
+        .padding(.top, 28)
     }
 
     private func sectionHeader(title: String, text: String) -> some View {
@@ -191,6 +319,12 @@ struct SettingsView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func settingsGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            content()
         }
     }
 
@@ -211,18 +345,12 @@ struct SettingsView: View {
         switch section {
         case .general:
             return viewModel.l10n.generalSettingsTitle
-        case .query:
-            return viewModel.l10n.querySettingsTitle
         case .accounts:
             return viewModel.l10n.accountSettingsTitle
-        case .countries:
-            return viewModel.l10n.countrySettingsTitle
+        case .query:
+            return viewModel.l10n.querySettingsTitle
         case .dataSources:
             return viewModel.l10n.dataSourceSettingsTitle
-        case .appStoreConnect:
-            return viewModel.l10n.connectTitle
-        case .cache:
-            return viewModel.l10n.cacheSettingsTitle
         case .export:
             return viewModel.l10n.exportSettingsTitle
         case .accessibility:
@@ -234,123 +362,140 @@ struct SettingsView: View {
         switch section {
         case .general:
             return "gearshape"
-        case .query:
-            return "magnifyingglass"
         case .accounts:
             return "person.2"
-        case .countries:
-            return "globe"
+        case .query:
+            return "magnifyingglass"
         case .dataSources:
             return "server.rack"
-        case .appStoreConnect:
-            return "key"
-        case .cache:
-            return "internaldrive"
         case .export:
             return "square.and.arrow.up"
         case .accessibility:
             return "accessibility"
         }
     }
+
+    private func saveExport(extensionName: String, action: @escaping (URL) -> Void) {
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.allowedContentTypes = extensionName == "csv" ? [.commaSeparatedText] : [.json]
+        panel.nameFieldStringValue = "\(viewModel.l10n.exportBaseFileName).\(extensionName)"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else {
+                return
+            }
+            action(url)
+        }
+    }
 }
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
-    case query
     case accounts
-    case countries
+    case query
     case dataSources
-    case appStoreConnect
-    case cache
     case export
     case accessibility
 
     var id: String { rawValue }
 }
 
-private struct AccountEditorView: View {
-    @Binding var account: AccountProfile
-    let l10n: L10n
-    let onSave: (AccountProfile) -> Void
-    let onMarkPending: () -> Void
+private enum AccountManagementMode {
+    case list
+    case editor
+}
+
+private struct SettingsRow<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
+            Text(title)
+                .foregroundStyle(.secondary)
+                .frame(width: 148, alignment: .leading)
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private struct LabeledField: View {
+    let title: String
+    let placeholder: String
+    @Binding var text: String
+    let hint: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .foregroundStyle(.secondary)
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 360)
+                .accessibilityLabel(title)
+                .accessibilityHint(hint)
+        }
+    }
+}
+
+private struct AccountEditorView: View {
+    @Binding var account: AccountProfile
+    @Binding var password: String
+    @Binding var twoFactorCode: String
+    let isLoggingIn: Bool
+    let needsTwoFactor: Bool
+    let statusMessage: String
+    let l10n: L10n
+    let loginButtonTitle: String
+    let onSave: (AccountProfile) -> Void
+    let onLogin: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(account.displayName.isEmpty ? l10n.accountSettingsTitle : account.displayName)
+                Text(account.accountSwitchingTitle)
                     .font(.title3.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
-                Text(l10n.accountSummary(
-                    name: account.displayName.isEmpty ? l10n.noAccountSelected : account.displayName,
-                    countryCode: account.countryCode,
-                    status: l10n.displayName(for: account.loginStatus)
-                ))
-                .font(.callout)
-                .foregroundStyle(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 14) {
-                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
-                    GridRow {
-                        Text(l10n.accountNameLabel)
-                            .foregroundStyle(.secondary)
-                        TextField(l10n.accountNamePlaceholder, text: savingBinding(\.displayName))
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsRow(title: l10n.appleAccountLabel) {
+                    TextField(l10n.appleAccountPlaceholder, text: savingBinding(\.appleAccount))
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel(l10n.appleAccountLabel)
+                }
+
+                SettingsRow(title: l10n.accountPasswordLabel) {
+                    SecureField(l10n.accountPasswordPlaceholder, text: $password)
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel(l10n.accountPasswordLabel)
+                }
+
+                if needsTwoFactor {
+                    SettingsRow(title: l10n.accountTwoFactorLabel) {
+                        TextField(l10n.accountTwoFactorPlaceholder, text: $twoFactorCode)
                             .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel(l10n.accountNameLabel)
-                    }
-
-                    GridRow {
-                        Text(l10n.appleAccountLabel)
-                            .foregroundStyle(.secondary)
-                        TextField(l10n.appleAccountPlaceholder, text: savingBinding(\.appleAccount))
-                            .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel(l10n.appleAccountLabel)
-                    }
-
-                    GridRow {
-                        Text(l10n.accountCountryLabel)
-                            .foregroundStyle(.secondary)
-                        Picker(l10n.accountCountryLabel, selection: savingBinding(\.countryCode)) {
-                            ForEach(CountryStorefrontCatalog.all) { storefront in
-                                Text("\(storefront.displayName) (\(storefront.countryCode))")
-                                    .tag(storefront.countryCode)
-                            }
-                        }
-                        .labelsHidden()
-                        .accessibilityLabel(l10n.accountCountryLabel)
-                    }
-
-                    GridRow {
-                        Text(l10n.storefrontIDLabel)
-                            .foregroundStyle(.secondary)
-                        TextField(l10n.storefrontIDPlaceholder, text: optionalSavingBinding(\.storefrontID))
-                            .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel(l10n.storefrontIDLabel)
-                    }
-
-                    GridRow {
-                        Text(l10n.accountStatusLabel)
-                            .foregroundStyle(.secondary)
-                        Text(l10n.displayName(for: account.loginStatus))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 4)
-                            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .accessibilityLabel(l10n.accountTwoFactorLabel)
                     }
                 }
             }
-            .padding(16)
-            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
-            )
 
-            Button(l10n.validateAccountButton, action: onMarkPending)
-                .buttonStyle(.bordered)
-                .accessibilityLabel(l10n.validateAccountButton)
+            Button(loginButtonTitle, action: onLogin)
+                .buttonStyle(.borderedProminent)
+                .disabled(isLoggingIn)
+                .accessibilityLabel(loginButtonTitle)
 
-            Spacer()
+            Text(statusMessage)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(l10n.statusSettingLabel)
+                .accessibilityValue(statusMessage)
+
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: 420, alignment: .leading)
     }
 
     private func savingBinding(_ keyPath: WritableKeyPath<AccountProfile, String>) -> Binding<String> {
@@ -358,16 +503,11 @@ private struct AccountEditorView: View {
             get: { account[keyPath: keyPath] },
             set: {
                 account[keyPath: keyPath] = keyPath == \AccountProfile.countryCode ? $0.uppercased() : $0
-                onSave(account)
-            }
-        )
-    }
-
-    private func optionalSavingBinding(_ keyPath: WritableKeyPath<AccountProfile, String?>) -> Binding<String> {
-        Binding(
-            get: { account[keyPath: keyPath] ?? "" },
-            set: {
-                account[keyPath: keyPath] = $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0
+                if keyPath == \AccountProfile.appleAccount,
+                   account.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                   account.displayName.hasPrefix(l10n.newAccountDefaultName(1).dropLast().description) {
+                    account.displayName = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
                 onSave(account)
             }
         )

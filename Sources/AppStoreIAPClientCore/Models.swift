@@ -45,6 +45,7 @@ public struct Storefront: Identifiable, Hashable, Codable, Sendable {
 
 public enum PriceSource: String, Codable, CaseIterable, Sendable {
     case publicStorefront = "Public Storefront"
+    case signedInAccount = "Signed-in Account"
     case appStoreConnect = "App Store Connect"
 }
 

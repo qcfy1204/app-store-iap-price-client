@@ -4,6 +4,7 @@ public struct L10n: Equatable, Sendable {
     public enum Language: Equatable, Sendable {
         case english
         case simplifiedChinese
+        case traditionalChinese
     }
 
     public let language: Language
@@ -18,6 +19,9 @@ public struct L10n: Equatable, Sendable {
             if normalized.hasPrefix("zh-hans") || normalized == "zh-cn" || normalized == "zh-sg" {
                 return .simplifiedChinese
             }
+            if normalized.hasPrefix("zh-hant") || normalized == "zh-tw" || normalized == "zh-hk" || normalized == "zh-mo" {
+                return .traditionalChinese
+            }
             if normalized.hasPrefix("en") {
                 return .english
             }
@@ -26,11 +30,43 @@ public struct L10n: Equatable, Sendable {
     }
 
     private func text(_ english: String, _ simplifiedChinese: String) -> String {
-        language == .simplifiedChinese ? simplifiedChinese : english
+        switch language {
+        case .english:
+            return english
+        case .simplifiedChinese:
+            return simplifiedChinese
+        case .traditionalChinese:
+            return simplifiedChinese.applyingTransform(StringTransform("Hans-Hant"), reverse: false) ?? simplifiedChinese
+        }
     }
 
     public var appTitle: String { text("App Store IAP Price Client", "App Store 内购价格查询") }
     public var appAccessibilityTitle: String { text("App Store in-app purchase price client", "App Store 内购价格查询客户端") }
+    public var queryInputPlaceholder: String { text("App name, App Store URL, or App ID", "App 名称、App Store 链接或 App ID") }
+    public var queryInputLabel: String { text("Query input", "查询输入框") }
+    public var queryInputHint: String {
+        text(
+            "Enter an app name, App Store URL, or numeric App ID.",
+            "输入 App 名称、App Store 链接或数字 App ID。"
+        )
+    }
+    public var queryButton: String { text("Query", "查询") }
+    public var queryButtonLabel: String { text("Query app price", "查询应用价格") }
+    public var queryButtonHint: String {
+        text(
+            "Queries prices using the selected data source. Signed-in account mode uses only the selected account region.",
+            "使用已选择的数据来源查询价格。按已登录账户模式只使用当前账户所属地区。"
+        )
+    }
+    public var accountMenuSignedOut: String { text("Not Signed In", "未登录") }
+    public var accountManagementMenuItem: String { text("Manage Accounts...", "管理账户...") }
+    public var savedAccountsMenuTitle: String { text("Saved Accounts", "已保存账户") }
+    public var noSignedInSavedAccounts: String { text("No signed-in saved accounts", "没有已登录账户") }
+    public var dataSourceMenuTitle: String { text("Data Source", "数据来源") }
+    public var publicDataSourceMenuItem: String { text("Public Data", "公开数据") }
+    public var signedInAccountDataSourceMenuItem: String { text("Signed-in Account", "按已登录账户") }
+    public var queryMenuTitle: String { text("Query", "查询") }
+    public var exportMenuTitle: String { text("Export", "导出") }
     public var searchTitle: String { text("Search", "搜索") }
     public var appNamePlaceholder: String { text("App name", "App 名称") }
     public var appNameSearchFieldLabel: String { text("App name search field", "App 名称搜索输入框") }
@@ -127,17 +163,90 @@ public struct L10n: Equatable, Sendable {
     public var cacheSettingsTitle: String { text("Cache", "缓存") }
     public var exportSettingsTitle: String { text("Export", "导出") }
     public var accessibilitySettingsTitle: String { text("Accessibility", "辅助功能") }
+    public var generalSettingsDescription: String {
+        text(
+            "Current app, account, query status, and local runtime state.",
+            "查看当前应用、账户、查询状态和本地运行时状态。"
+        )
+    }
+    public var querySettingsDescription: String {
+        text(
+            "The query scope follows the selected data source. Signed-in account mode uses only the current account storefront.",
+            "查询范围跟随已选择的数据来源。按已登录账户模式只使用当前账户商店地区。"
+        )
+    }
+    public var countrySettingsDescription: String {
+        text(
+            "Select every country or region that should appear in the price result table.",
+            "选择需要出现在价格结果表中的所有国家和地区。"
+        )
+    }
+    public var dataSourceSettingsDescription: String {
+        text(
+            "Public storefront data is used first. Developer API credentials are optional.",
+            "优先使用公开商店数据。开发者 API 凭据为可选项。"
+        )
+    }
+    public var exportSettingsDescription: String {
+        text(
+            "Export the current price table after a query has produced results.",
+            "查询产生结果后，可导出当前价格表。"
+        )
+    }
+    public var accessibilitySettingsDescription: String {
+        text(
+            "The interface uses native macOS controls, system language, and labelled table data.",
+            "界面使用 macOS 原生控件、系统语言和带标签的表格数据。"
+        )
+    }
+    public var selectedAppSettingLabel: String { text("Selected app", "已选应用") }
+    public var currentAccountSettingLabel: String { text("Current account", "当前账户") }
+    public var statusSettingLabel: String { text("Status", "状态") }
+    public var runtimeSettingLabel: String { text("Runtime", "运行时") }
+    public var queryScopeSettingLabel: String { text("Scope", "范围") }
+    public var publicStorefrontSettingLabel: String { text("Public storefront", "公开商店") }
+    public var exportFormatSettingLabel: String { text("Format", "格式") }
+    public var exportFileNameSettingLabel: String { text("Default name", "默认名称") }
+    public var advancedRuntimeSettingsLabel: String { text("Advanced runtime settings", "高级运行时设置") }
+    public var accessibilityVoiceOverLabel: String { text("VoiceOver", "旁白") }
+    public var accessibilityVoiceOverDescription: String {
+        text(
+            "Controls expose labels, hints, values, and table summaries for VoiceOver navigation.",
+            "控件提供标签、提示、取值和表格摘要，便于通过旁白导航。"
+        )
+    }
+    public var accessibilityKeyboardLabel: String { text("Keyboard", "键盘") }
+    public var accessibilityKeyboardDescription: String {
+        text(
+            "Search uses Return. Refresh uses Command-R. Cancel uses Command-Period.",
+            "搜索使用回车。刷新使用 Command-R。取消使用 Command-句点。"
+        )
+    }
+    public var accessibilityLanguageLabel: String { text("Language", "语言") }
+    public var accessibilityLanguageDescription: String {
+        text(
+            "The app follows the preferred system language and falls back to English.",
+            "应用跟随系统首选语言，并在不支持时回退到英文。"
+        )
+    }
     public var accountSettingsDescription: String {
         text(
-            "Account profiles are local region profiles. The app does not store Apple ID passwords. Switching profiles switches the query storefront.",
-            "账户档案是本地地区配置。应用不会保存 Apple ID 密码。切换档案会切换查询商店地区。"
+            "Add or switch Apple accounts. Passwords are only used for the current login attempt.",
+            "添加或切换 Apple 账户。密码仅用于本次登录。"
         )
     }
     public var accountListLabel: String { text("Account profiles", "账户档案") }
     public var addAccountButton: String { text("Add", "添加") }
+    public var editButton: String { text("Edit", "编辑") }
     public var deleteAccountButton: String { text("Delete", "删除") }
-    public var validateAccountButton: String { text("Mark Login Pending", "标记等待登录") }
+    public var validateAccountButton: String { text("Validate Local Session", "验证本地会话") }
     public var noAccountSelected: String { text("No account profile selected", "未选择账户档案") }
+    public var noSignedInAccountForQuery: String {
+        text(
+            "Add or validate an account before querying in signed-in account mode.",
+            "按已登录账户模式查询前，请先添加或验证账户。"
+        )
+    }
     public var accountNamePlaceholder: String { text("Account name", "账户名称") }
     public var appleAccountPlaceholder: String { text("Apple ID email or note", "Apple ID 邮箱或备注") }
     public var storefrontIDPlaceholder: String { text("Storefront ID", "Storefront ID") }
@@ -146,6 +255,39 @@ public struct L10n: Equatable, Sendable {
     public var accountCountryLabel: String { text("Account country or region", "账户国家或地区") }
     public var storefrontIDLabel: String { text("Storefront identifier", "Storefront 标识") }
     public var accountStatusLabel: String { text("Login status", "登录状态") }
+    public var accountSessionFileLabel: String { text("Local session file", "本地会话文件") }
+    public var accountSessionFlowLabel: String { text("Login flow", "登录流程") }
+    public var accountSessionUnavailable: String { text("Enter an Apple account identifier to derive the session file.", "输入 Apple 账户标识后会自动生成会话文件名。") }
+    public var accountPasswordLabel: String { text("Apple ID password", "Apple ID 密码") }
+    public var accountPasswordPlaceholder: String { text("Used only for this login attempt", "仅用于本次登录") }
+    public var accountTwoFactorLabel: String { text("Two-factor code", "双重验证码") }
+    public var accountTwoFactorPlaceholder: String { text("Enter the 6-digit code after it arrives", "收到验证码后输入 6 位数字") }
+    public var accountLoginRuntimeLabel: String { text("Node executable", "Node 可执行文件") }
+    public var accountLoginRuntimePlaceholder: String { text("/path/to/node", "/path/to/node") }
+    public var accountLoginScriptLabel: String { text("Pastapp helper main.js", "Pastapp helper main.js") }
+    public var accountLoginScriptPlaceholder: String { text("/path/to/main.js", "/path/to/main.js") }
+    public var accountLoginButton: String { text("Login and Get Code", "登录并获取验证码") }
+    public var accountContinueTwoFactorButton: String { text("Continue Verification", "继续验证") }
+    public var accountRuntimeStatusLabel: String { text("Runtime status", "运行时状态") }
+    public var accountRuntimeReady: String { text("Runtime ready", "运行时已就绪") }
+    public var accountRuntimeMissingNode: String {
+        text(
+            "Pastapp helper is bundled, but Node was not found. Install Node or choose a local node executable.",
+            "Pastapp helper 已内置，但未找到 Node。请安装 Node 或选择本地 node 可执行文件。"
+        )
+    }
+    public var accountRuntimeMissingHelper: String {
+        text(
+            "Pastapp helper was not found in the app resources. Rebuild the app package or choose helper main.js manually.",
+            "应用资源中未找到 Pastapp helper。请重新构建应用包，或手动选择 helper main.js。"
+        )
+    }
+    public var accountPastappFlowDescription: String {
+        text(
+            "Pastapp-compatible local session: GSA SRP, Anisette, 2FA, StoreServices token, and local cookie jar.",
+            "Pastapp 兼容本地会话：GSA SRP、Anisette、双重验证、StoreServices 令牌和本地 Cookie Jar。"
+        )
+    }
     public var accountStorageNote: String {
         text(
             "Profiles are encrypted locally in Application Support. Passwords are not stored.",
@@ -157,8 +299,25 @@ public struct L10n: Equatable, Sendable {
         text("Selected account \(name), storefront \(countryCode).", "已选择账户 \(name)，商店地区 \(countryCode)。")
     }
     public func accountAwaitingUserLogin(_ name: String) -> String {
-        text("\(name) is marked as awaiting user login.", "\(name) 已标记为等待用户登录。")
+        text("\(name) is awaiting a local login session.", "\(name) 正在等待本地登录会话。")
     }
+    public func accountSessionValidated(_ name: String, storefrontID: String) -> String {
+        text("\(name) local session is valid. Storefront \(storefrontID).", "\(name) 的本地会话有效。Storefront \(storefrontID)。")
+    }
+    public func accountSessionValidationFailed(_ message: String) -> String {
+        text("Local session validation failed: \(message)", "本地会话验证失败：\(message)")
+    }
+    public var accountAppleIDRequired: String { text("Enter an Apple account identifier first.", "请先输入 Apple 账户标识。") }
+    public var accountPasswordRequired: String { text("Enter the Apple ID password for this login attempt.", "请输入本次登录使用的 Apple ID 密码。") }
+    public var accountLoginRuntimeRequired: String { text("Enter the local Node executable and Pastapp helper main.js paths.", "请输入本地 Node 可执行文件和 Pastapp helper main.js 路径。") }
+    public func accountLoginStarted(_ name: String) -> String { text("Logging in \(name).", "正在登录 \(name)。") }
+    public func accountNeedsTwoFactor(_ name: String) -> String {
+        text(
+            "A verification code was sent to \(name)'s trusted devices. Enter the code and continue verification.",
+            "\(name) 的验证码已发送至受信任设备。请输入验证码后继续验证。"
+        )
+    }
+    public func accountLoginFailed(_ message: String) -> String { text("Login failed: \(message)", "登录失败：\(message)") }
     public func accountSaveFailed(_ message: String) -> String { text("Account save failed: \(message)", "账户保存失败：\(message)") }
     public func accountSummary(name: String, countryCode: String, status: String) -> String {
         text("\(name), storefront \(countryCode), status \(status)", "\(name)，商店地区 \(countryCode)，状态 \(status)")
@@ -188,6 +347,7 @@ public struct L10n: Equatable, Sendable {
     public func foundApps(_ count: Int) -> String { text("Found \(count) apps.", "找到 \(count) 个应用。") }
     public func searchFailed(_ message: String) -> String { text("Search failed: \(message)", "搜索失败：\(message)") }
     public var enterValidAppID: String { text("Enter a valid App Store URL or numeric App ID.", "请输入有效的 App Store 链接或数字 App ID。") }
+    public var enterQueryBeforeSearch: String { text("Enter an app name, App Store URL, or App ID.", "请输入 App 名称、App Store 链接或 App ID。") }
     public func lookingUpApp(_ appID: String) -> String { text("Looking up app \(appID).", "正在查询应用 \(appID)。") }
     public func selectedApp(_ name: String) -> String { text("Selected \(name).", "已选择 \(name)。") }
     public func noAppFound(_ appID: String, countryCode: String) -> String {
@@ -246,8 +406,19 @@ public struct L10n: Equatable, Sendable {
         switch source {
         case .publicStorefront:
             return text("Public Storefront", "公开商店")
+        case .signedInAccount:
+            return text("Signed-in Account", "已登录账户")
         case .appStoreConnect:
             return text("App Store Connect", "App Store Connect")
+        }
+    }
+
+    public func displayName(for mode: QueryDataSourceMode) -> String {
+        switch mode {
+        case .publicStorefront:
+            return publicDataSourceMenuItem
+        case .signedInAccount:
+            return signedInAccountDataSourceMenuItem
         }
     }
 

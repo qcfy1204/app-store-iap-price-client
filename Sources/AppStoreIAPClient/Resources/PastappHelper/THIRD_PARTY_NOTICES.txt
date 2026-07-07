@@ -1,0 +1,11 @@
+Pastapp helper runtime notices
+
+This application bundles a local helper derived from the user-provided Pastapp test package.
+The helper is used only as a local process for account-owned App Store session validation.
+
+Bundled runtime:
+- Node.js arm64 executable, used to run the helper locally.
+- NodeProject dependencies from the inspected Pastapp test package.
+
+Before public distribution, verify and include the complete upstream license texts for
+Node.js and each bundled NodeProject dependency.

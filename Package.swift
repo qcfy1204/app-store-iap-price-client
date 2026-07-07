@@ -11,7 +11,10 @@ let package = Package(
         .target(name: "AppStoreIAPClientCore"),
         .executableTarget(
             name: "AppStoreIAPClient",
-            dependencies: ["AppStoreIAPClientCore"]
+            dependencies: ["AppStoreIAPClientCore"],
+            resources: [
+                .copy("Resources")
+            ]
         ),
         .executableTarget(
             name: "AppStoreIAPClientSmoke",

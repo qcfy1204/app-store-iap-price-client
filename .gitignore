@@ -11,3 +11,5 @@ work/
 *.mobileprovision
 *.cer
 *.key
+Sources/AppStoreIAPClient/Resources/PastappHelper/runtime/node/
+Sources/AppStoreIAPClient/Resources/PastappHelper/runtime/NodeProject/node_modules/
